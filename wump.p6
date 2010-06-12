@@ -1,7 +1,8 @@
-#! /usr/local/bin/pugs
+#! /home/kappa/bin/perl6
+use v6;
 
-constant $N_ROOMS = 25;
-constant @ROOMS = 0 .. $N_ROOMS - 1;
+my $N_ROOMS = 25;
+my @ROOMS = 0 .. $N_ROOMS - 1;
 
 my @cave_mat;
 
@@ -10,6 +11,8 @@ my (Int $player, Int $wumpus, @cave);
 # ========================================
 
 create_cave();
+
+say "Cave created";
 
 loop {
     # 0. check
@@ -22,8 +25,7 @@ loop {
     say "You can go to &links($player)";
 
     # 2. read
-    say "Move?";
-    my $cmd = =<>;
+    my $cmd = prompt "Move?";
 
     # 3. act
     $player = $cmd if $cmd == any(links($player));
@@ -35,29 +37,31 @@ loop {
 sub create_cave {
     @cave_mat = map { [ 0 xx $N_ROOMS ] }, @ROOMS;
 
-    my Int $next = rand($N_ROOMS);
+    my Int $next = $N_ROOMS.rand.Int;
     for @ROOMS -> $room {
         my $n_links = links($room).elems;
 
         while $n_links < 3 {
-            next if linked($room, $next);
-            next if links($next).elems >= 3;
+            if linked($room, $next) || links($next).elems >= 3 {
+                $next = ($next + 1) % $N_ROOMS;
+                next;
+            }
 
             dig_link($room, $next)
                 and ++$n_links;
 
-            NEXT { $next = ($next + 1) % $N_ROOMS; }
+            # XXX NEXT { $next = ($next + 1) % $N_ROOMS; }
         }
 
-        say ~links($room);
+        say "Links for room $room: ", ~links($room);
     }
 
-    say join "\n", map { ~@($_) }, @cave_mat;
+    say "Cave mat: ", join "\n", map { ~@($_) }, @cave_mat;
 
     die unless coupled();
 
-    $wumpus = int rand($N_ROOMS + 1);
-    $player = int rand($N_ROOMS + 1);
+    $wumpus = int ($N_ROOMS + 1).rand;
+    $player = int ($N_ROOMS + 1).rand;
 }
 
 sub linked($from, $to) {

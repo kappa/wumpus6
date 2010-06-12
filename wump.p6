@@ -12,8 +12,6 @@ my (Int $player, Int $wumpus, @cave);
 
 create_cave();
 
-say "Cave created";
-
 loop {
     # 0. check
     if $player == $wumpus {
@@ -25,7 +23,7 @@ loop {
     say "You can go to &links($player)";
 
     # 2. read
-    my $cmd = prompt "Move?";
+    my $cmd = prompt "Move or shoot [ms]: ";
 
     # 3. act
     $player = $cmd if $cmd == any(links($player));
@@ -35,33 +33,37 @@ loop {
 
 
 sub create_cave {
-    @cave_mat = map { [ 0 xx $N_ROOMS ] }, @ROOMS;
+    print "Generating cave";
+    repeat {
+        @cave_mat = map { [ 0 xx $N_ROOMS ] }, @ROOMS;
 
-    my Int $next = $N_ROOMS.rand.Int;
-    for @ROOMS -> $room {
-        my $n_links = links($room).elems;
+        my Int $next = $N_ROOMS.rand.Int;
+        for @ROOMS -> $room {
+            my $n_links = links($room).elems;
 
-        while $n_links < 3 {
-            if linked($room, $next) || links($next).elems >= 3 {
-                $next = ($next + 1) % $N_ROOMS;
-                next;
+            while $n_links < 3 {
+                if linked($room, $next) || links($next).elems >= 3 {
+                    $next = ($next + 1) % $N_ROOMS;
+                    next;
+                }
+
+                dig_link($room, $next)
+                    and ++$n_links;
+                print ".";
+
+                # XXX NEXT { $next = ($next + 1) % $N_ROOMS; }
             }
 
-            dig_link($room, $next)
-                and ++$n_links;
-
-            # XXX NEXT { $next = ($next + 1) % $N_ROOMS; }
+            #say "Links for room $room: ", ~links($room);
         }
 
-        say "Links for room $room: ", ~links($room);
-    }
+        #say "Cave mat: ", join "\n", map { ~@($_) }, @cave_mat;
+    } until coupled();
 
-    say "Cave mat: ", join "\n", map { ~@($_) }, @cave_mat;
+    say "complete!";
 
-    die unless coupled();
-
-    $wumpus = int ($N_ROOMS + 1).rand;
-    $player = int ($N_ROOMS + 1).rand;
+    $wumpus = ($N_ROOMS + 1).rand.Int;
+    $player = ($N_ROOMS + 1).rand.Int;
 }
 
 sub linked($from, $to) {
@@ -82,7 +84,7 @@ sub coupled {
     @connected[@queue[0]] = 1;
 
     while defined (my $top = @queue.shift) {
-        say "top = $top, queue = @queue[]";
+        #say "top = $top, queue = @queue[]";
 
         push @queue, grep { !@connected[$_] }, links($top);
 

@@ -7,6 +7,7 @@ my @ROOMS = 0 .. $N_ROOMS - 1;
 my @cave_mat;
 
 my (Int $player, Int $wumpus, @cave);
+my (@bats, @pits);
 
 # ========================================
 
@@ -18,9 +19,24 @@ loop {
         die "You are eaten";
     }
 
+    if $player == any(@pits) {
+        die "You fall into a pit";
+    }
+
+    if $player == any(@bats) {
+        say "You are carried away by bats";
+        $player = @ROOMS.pick;
+        redo;
+    }
+
     # 1. report
-    say "You are in $player (wumpus sleeps in $wumpus)";
-    say "You can go to &links($player)";
+    say "You are in room $player";
+    say "  (wumpus sleeps in $wumpus)";
+    say "  (bat are in {@bats})";
+    say "  (pits are in {@pits})";
+    say "You feel wind from a pit" if any(links($player)) == any @pits;
+    say "You hear rustle from bats" if any(links($player)) == any @bats;
+    say "You see passages to &links($player)";
 
     # 2. read
     my $cmd = prompt "Move or shoot [ms]: ";
@@ -31,13 +47,12 @@ loop {
 
 # ========================================
 
-
 sub create_cave {
     print "Generating cave";
     repeat {
         @cave_mat = map { [ 0 xx $N_ROOMS ] }, @ROOMS;
 
-        my Int $next = $N_ROOMS.rand.Int;
+        my Int $next = @ROOMS.pick;
         for @ROOMS -> $room {
             my $n_links = links($room).elems;
 
@@ -62,8 +77,11 @@ sub create_cave {
 
     say "complete!";
 
-    $wumpus = ($N_ROOMS + 1).rand.Int;
-    $player = ($N_ROOMS + 1).rand.Int;
+    $wumpus = @ROOMS.pick;
+    $player = @ROOMS.pick;
+
+    @bats = @ROOMS.pick(3);
+    @pits = @ROOMS.pick(3);
 }
 
 sub linked($from, $to) {
